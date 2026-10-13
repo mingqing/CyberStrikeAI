@@ -1,0 +1,26 @@
+name: Format OIDC Go files
+on:
+  push:
+    branches: [feat/oidc-login]
+    paths:
+      - '.github/workflows/oidc-gofmt.yml'
+permissions:
+  contents: write
+jobs:
+  gofmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/oidc-login
+          persist-credentials: true
+      - name: Run gofmt on changed Go files
+        run: |
+          gofmt -w internal/config/config.go internal/handler/oidc.go internal/security/auth_manager.go internal/app/app.go
+          git diff --check
+          git diff --exit-code --quiet && exit 0
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add internal/config/config.go internal/handler/oidc.go internal/security/auth_manager.go internal/app/app.go
+          git commit -m 'style(go): format OIDC changes with gofmt'
+          git push origin HEAD:feat/oidc-login
