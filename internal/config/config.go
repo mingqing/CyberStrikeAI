@@ -1371,19 +1371,23 @@ type OIDCConfig struct {
 	ClientID     string `yaml:"client_id" json:"client_id"`
 	ClientSecret string `yaml:"client_secret" json:"-"`
 	RedirectURI  string `yaml:"redirect_uri" json:"redirect_uri"`
-	Username     string `yaml:"username_claim" json:"username_claim"`
-	DisplayName  string `yaml:"display_name_claim" json:"display_name_claim"`
+	Claims       OIDCClaimsConfig `yaml:"claims" json:"claims"`
+}
+
+type OIDCClaimsConfig struct {
+	Username string `yaml:"username" json:"username"`
+	DisplayName string `yaml:"display_name" json:"display_name"`
 }
 
 func (c OIDCConfig) UsernameClaim() string {
-	if c.Username != "" {
-		return c.Username
+	if c.Claims.Username != "" {
+		return c.Claims.Username
 	}
 	return "preferred_username"
 }
 func (c OIDCConfig) DisplayNameClaim() string {
-	if c.DisplayName != "" {
-		return c.DisplayName
+	if c.Claims.DisplayName != "" {
+		return c.Claims.DisplayName
 	}
 	return "name"
 }
