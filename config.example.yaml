@@ -36,6 +36,7 @@ auth:
   # 可选的 OIDC SSO，默认关闭；HTTPS 反向代理下使用
   # oidc:
   #   enabled: true
+  #   allow_http: false # 本地测试可改为 true；允许 HTTP Issuer/端点/回调
   #   issuer: https://sso.example.com
   #   client_id: cyberstrike
   #   # 推荐通过 CYBERSTRIKE_OIDC_CLIENT_SECRET 环境变量注入
