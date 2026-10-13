@@ -41,8 +41,9 @@ auth:
   #   client_id: cyberstrike
   #   # 推荐通过 CYBERSTRIKE_OIDC_CLIENT_SECRET 环境变量注入
   #   redirect_uri: https://cyberstrike.example.com/api/auth/oidc/callback
-  #   username_claim: preferred_username
-  #   display_name_claim: name
+  #   claims:
+  #     username: preferred_username
+  #     display_name: name
 # 日志配置
 log:
   level: info # 日志级别: debug(调试), info(信息), warn(警告), error(错误)
