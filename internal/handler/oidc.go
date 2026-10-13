@@ -15,6 +15,7 @@ import (
  "math/big"
  "net/http"
  "net/url"
+ "os"
  "strings"
  "time"
 
@@ -29,6 +30,7 @@ type OIDCHandler struct {
  client *http.Client
 }
 func NewOIDCHandler(cfg config.OIDCConfig, manager *security.AuthManager) *OIDCHandler {
+ if secret:=os.Getenv("CYBERSTRIKE_OIDC_CLIENT_SECRET");secret!="" {cfg.ClientSecret=secret}
  return &OIDCHandler{cfg:cfg,manager:manager,client:&http.Client{Timeout:10*time.Second}}
 }
 type discoveryDocument struct {
@@ -64,6 +66,7 @@ func randomURLToken() (string,error) {
 func (h *OIDCHandler) Config(c *gin.Context) {c.JSON(200,gin.H{"enabled":h.cfg.Enabled})}
 func (h *OIDCHandler) Login(c *gin.Context) {
  if !h.cfg.Enabled {c.AbortWithStatus(404);return}
+ if h.cfg.ClientID=="" || h.cfg.ClientSecret=="" || h.cfg.RedirectURI=="" {c.AbortWithStatus(503);return}
  d,err:=h.discovery(c.Request.Context());if err!=nil{c.AbortWithStatus(502);return}
  state,err:=randomURLToken();if err!=nil{c.AbortWithStatus(500);return}
  nonce,err:=randomURLToken();if err!=nil{c.AbortWithStatus(500);return}
