@@ -2,6 +2,9 @@ package security
 
 import (
 	"database/sql"
+ "crypto/sha256"
+ "encoding/hex"
+ "fmt"
 	"errors"
 	"strings"
 	"sync"
