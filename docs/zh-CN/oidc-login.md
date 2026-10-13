@@ -16,8 +16,9 @@ auth:
     client_id: cyberstrike
     client_secret: "从环境注入的密钥"
     redirect_uri: https://cyberstrike.example.com/api/auth/oidc/callback
-    username_claim: preferred_username
-    display_name_claim: name
+    claims:
+      username: preferred_username
+      display_name: name
 ```
 
 OIDC Provider 注册 Web 客户端，使用 Authorization Code Flow 和 PKCE (S256)。默认要求 HTTPS Issuer、Discovery、Token、JWKS 和 Redirect URI；启用 `allow_http: true` 后也允许这些地址使用 HTTP。Cookie 的 Secure 属性按照配置的 Redirect URI Scheme 设置。当前只支持 RS256 签名的 ID Token。配置 Redirect URI 必须与对外访问地址一致。生产环境强烈推荐 HTTPS；HTTP 可能暴露授权码、客户端密钥及会话 Cookie，仅适合隔离开发环境。
