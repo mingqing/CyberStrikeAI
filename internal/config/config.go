@@ -1365,6 +1365,7 @@ type AuthConfig struct {
 	OIDC                 OIDCConfig `yaml:"oidc,omitempty" json:"oidc,omitempty"`
 }
 type OIDCConfig struct {
+	AllowHTTP    bool   `yaml:"allow_http" json:"allow_http"`
 	Enabled      bool   `yaml:"enabled" json:"enabled"`
 	Issuer       string `yaml:"issuer" json:"issuer"`
 	ClientID     string `yaml:"client_id" json:"client_id"`
