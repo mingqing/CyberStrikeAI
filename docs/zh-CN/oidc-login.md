@@ -11,6 +11,7 @@ auth:
   session_duration_hours: 12
   oidc:
     enabled: true
+    allow_http: false  # 在明确接受明文传输风险的隔离环境可设为 true
     issuer: https://sso.example.com
     client_id: cyberstrike
     client_secret: "从环境注入的密钥"
@@ -19,7 +20,7 @@ auth:
     display_name_claim: name
 ```
 
-OIDC Provider 注册 Web 客户端，使用 Authorization Code Flow 和 PKCE (S256)。应用要求 HTTPS Issuer、Discovery、Token、JWKS，当前只支持 RS256 签名的 ID Token。配置 Redirect URI 必须与反向代理实际对外地址一致。所有生产部署使用 HTTPS。
+OIDC Provider 注册 Web 客户端，使用 Authorization Code Flow 和 PKCE (S256)。默认要求 HTTPS Issuer、Discovery、Token、JWKS 和 Redirect URI；启用 `allow_http: true` 后也允许这些地址使用 HTTP。Cookie 的 Secure 属性按照配置的 Redirect URI Scheme 设置。当前只支持 RS256 签名的 ID Token。配置 Redirect URI 必须与对外访问地址一致。生产环境强烈推荐 HTTPS；HTTP 可能暴露授权码、客户端密钥及会话 Cookie，仅适合隔离开发环境。
 
 首次 SSO 登录会按配置 Claim 创建本地用户，默认 viewer；现有 OIDC 用户按用户名及 issuer+sub 指纹校验登录。未启用 OIDC 的本地密码账号、内置 admin 均不会因同名而被自动关联。OIDC 新建用户的 password_hash 字段保存 !oidc: 开头的身份指纹，不能通过本地密码登录。不可随意修改 Username Claim 的值，也不能将 OIDC 账号密码重置为本地密码，否则会破坏绑定。因为无数据库身份映射表，单个用户只支持一个 OIDC 身份，且用户名在 IdP 中必须稳定、唯一、不允许回收给其他用户。
 
