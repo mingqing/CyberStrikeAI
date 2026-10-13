@@ -48,9 +48,9 @@ type discoveryDocument struct {
 func (h *OIDCHandler) discovery(ctx context.Context) (discoveryDocument, error) {
 	var d discoveryDocument
 	issuer := strings.TrimRight(h.cfg.Issuer, "/")
-	if !strings.HasPrefix(issuer, "https://") {
-		return d, errors.New("OIDC issuer must use HTTPS")
-	}
+	if !h.allowedOIDCURL(issuer) {
+        return d, errors.New("OIDC issuer requires HTTPS unless allow_http is enabled")
+    }
 	err := h.getJSON(ctx, issuer+"/.well-known/openid-configuration", "", &d)
 	if err != nil {
 		return d, err
@@ -59,11 +59,23 @@ func (h *OIDCHandler) discovery(ctx context.Context) (discoveryDocument, error) 
 		return d, errors.New("OIDC issuer mismatch")
 	}
 	for _, v := range []string{d.AuthorizationEndpoint, d.TokenEndpoint, d.UserinfoEndpoint, d.JWKSURI} {
-		if !strings.HasPrefix(v, "https://") {
-			return d, errors.New("OIDC endpoints must use HTTPS")
-		}
+		if v != "" && !h.allowedOIDCURL(v) {
+            return d, errors.New("OIDC endpoint requires HTTPS unless allow_http is enabled")
+        }
 	}
 	return d, nil
+}
+// allowedOIDCURL only relaxes transport scheme in explicitly opted-in environments.
+func (h *OIDCHandler) allowedOIDCURL(raw string) bool {
+    u, err := url.Parse(raw)
+    if err != nil || u.Host == "" || u.User != nil || u.Fragment != "" {
+        return false
+    }
+    return u.Scheme == "https" || (h.cfg.AllowHTTP && u.Scheme == "http")
+}
+func (h *OIDCHandler) callbackCookieSecure() bool {
+    u, err := url.Parse(h.cfg.RedirectURI)
+    return err == nil && u.Scheme == "https"
 }
 func (h *OIDCHandler) getJSON(ctx context.Context, endpoint, bearer string, out interface{}) error {
 	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
@@ -96,7 +108,7 @@ func (h *OIDCHandler) Login(c *gin.Context) {
 		c.AbortWithStatus(404)
 		return
 	}
-	if h.cfg.ClientID == "" || h.cfg.ClientSecret == "" || h.cfg.RedirectURI == "" {
+	if h.cfg.ClientID == "" || h.cfg.ClientSecret == "" || !h.allowedOIDCURL(h.cfg.RedirectURI) {
 		c.AbortWithStatus(503)
 		return
 	}
@@ -121,7 +133,7 @@ func (h *OIDCHandler) Login(c *gin.Context) {
 		return
 	}
 	// The transaction is kept in HttpOnly cookies; never persist OAuth secrets in query strings.
-	secure := true
+	secure := h.callbackCookieSecure()
 	for key, value := range map[string]string{"oidc_state": state, "oidc_nonce": nonce, "oidc_verifier": verifier} {
 		http.SetCookie(c.Writer, &http.Cookie{Name: key, Value: value, Path: "/api/auth/oidc/", MaxAge: 300, Secure: secure, HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	}
@@ -140,7 +152,7 @@ func (h *OIDCHandler) Callback(c *gin.Context) {
 		if err == nil {
 			cookies[key] = cookie.Value
 		}
-		http.SetCookie(c.Writer, &http.Cookie{Name: key, Path: "/api/auth/oidc/", MaxAge: -1, Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+		http.SetCookie(c.Writer, &http.Cookie{Name: key, Path: "/api/auth/oidc/", MaxAge: -1, Secure: h.callbackCookieSecure(), HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	}
 	state := c.Query("state")
 	if state == "" || len(cookies["oidc_state"]) != len(state) || subtle.ConstantTimeCompare([]byte(state), []byte(cookies["oidc_state"])) != 1 || cookies["oidc_nonce"] == "" || cookies["oidc_verifier"] == "" {
@@ -212,7 +224,7 @@ func (h *OIDCHandler) Callback(c *gin.Context) {
 		c.AbortWithStatusJSON(403, gin.H{"error": "OIDC account not authorized or username conflict"})
 		return
 	}
-	http.SetCookie(c.Writer, &http.Cookie{Name: "auth_token", Value: token, Path: "/", Expires: expiry, Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
+	http.SetCookie(c.Writer, &http.Cookie{Name: "auth_token", Value: token, Path: "/", Expires: expiry, Secure: h.callbackCookieSecure(), HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	c.Redirect(302, "/")
 }
 func (h *OIDCHandler) verifyIDToken(ctx context.Context, d discoveryDocument, raw, nonce string) (map[string]interface{}, error) {
