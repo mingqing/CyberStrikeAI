@@ -625,6 +625,7 @@ func New(cfg *config.Config, log *logger.Logger, configPath string) (*App, error
 	setupRoutes(
 		router,
 		authHandler,
+		oidcHandler,
 		agentHandler,
 		monitorHandler,
 		notificationHandler,
@@ -931,6 +932,7 @@ func (a *App) RestartRobotConnections() {
 func setupRoutes(
 	router *gin.Engine,
 	authHandler *handler.AuthHandler,
+	oidcHandler *handler.OIDCHandler,
 	agentHandler *handler.AgentHandler,
 	monitorHandler *handler.MonitorHandler,
 	notificationHandler *handler.NotificationHandler,
