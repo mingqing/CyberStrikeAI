@@ -51,7 +51,14 @@ func (h *OIDCHandler) discovery(ctx context.Context) (discoveryDocument, error) 
 	if !h.allowedOIDCURL(issuer) {
         return d, errors.New("OIDC issuer requires HTTPS unless allow_http is enabled")
     }
-	err := h.getJSON(ctx, issuer+"/.well-known/openid-configuration", "", &d)
+	discoveryURL := strings.TrimSpace(h.cfg.DiscoveryURL)
+    if discoveryURL == "" {
+        discoveryURL = issuer + "/.well-known/openid-configuration"
+    }
+    if !h.allowedOIDCURL(discoveryURL) {
+        return d, errors.New("OIDC discovery URL requires HTTPS unless allow_http is enabled")
+    }
+    err := h.getJSON(ctx, discoveryURL, "", &d)
 	if err != nil {
 		return d, err
 	}
