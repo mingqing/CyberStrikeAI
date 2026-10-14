@@ -84,3 +84,20 @@ func TestOIDCCookieSecureBasedOnRedirect(t *testing.T) {
 		}
 	}
 }
+
+func TestOIDCConfigDefaultLoginLabel(t *testing.T) {
+	h := NewOIDCHandler(config.OIDCConfig{Enabled: true}, nil)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/auth/oidc/config", nil)
+	h.Config(c)
+	var response struct {
+		Label string `json:"login_label"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.Label != "企业 SSO 登录" {
+		t.Fatalf("unexpected default label: %q", response.Label)
+	}
+}
