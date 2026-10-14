@@ -344,6 +344,7 @@ func (a *AuthManager) AuthenticateOIDC(username, displayName, issuer, subject st
 		if err = db.UpdateRBACUser(user.ID, displayName, nil, nil); err != nil {
 			return "", time.Time{}, err
 		}
+		user.DisplayName = displayName
 	}
 	for {
 		a.mu.RLock()
@@ -359,7 +360,7 @@ func (a *AuthManager) AuthenticateOIDC(username, displayName, issuer, subject st
 		}
 		token := uuid.NewString()
 		expiry := time.Now().Add(a.sessionDuration)
-		session := Session{Token: token, ExpiresAt: expiry, UserID: user.ID, Username: user.Username, DisplayName: displayName, Roles: roles, Permissions: access.Permissions, PermissionScopes: access.PermissionScopes, Scope: access.Scope}
+		session := Session{Token: token, ExpiresAt: expiry, UserID: user.ID, Username: user.Username, DisplayName: user.DisplayName, Roles: roles, Permissions: access.Permissions, PermissionScopes: access.PermissionScopes, Scope: access.Scope}
 		if a.publishSession(session, version) {
 			return token, expiry, nil
 		}
