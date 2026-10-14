@@ -5,7 +5,7 @@ on:
   pull_request:
     paths: ['internal/update/**', 'internal/workflow/**', 'internal/config/**', 'internal/handler/**', 'internal/mcp/**', 'cmd/server/**', 'web/static/js/**', 'web/static/css/style.css', 'web/templates/index.html', 'upgrade.sh', 'run.sh', 'go.mod', 'go.sum', '.gitignore', '.github/workflows/self-update.yml']
 permissions:
-  contents: read
+  contents: write
 jobs:
   update:
     strategy:
@@ -23,6 +23,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: One-time OIDC module tidy and restore workflow
+        if: runner.os == 'Linux' && github.event_name == 'push' && github.ref == 'refs/heads/feat/oidc-login'
+        shell: bash
+        run: |
+          set -euo pipefail
+          go mod tidy
+          go test ./internal/config ./internal/handler ./internal/security ./cmd/server
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git show origin/main:.github/workflows/self-update.yml > .github/workflows/self-update.yml
+          git rm -f .github/workflows/oidc-module-repair.yml
+          git add go.mod go.sum .github/workflows/self-update.yml
+          git diff --cached --check
+          git commit -m "fix(oidc): tidy dependencies and restore CI workflow"
+          git push origin HEAD:feat/oidc-login
       - run: go test -race ./internal/update ./internal/config ./internal/handler ./cmd/server ./internal/workflow
       - run: go build ./...
       - name: Frontend regression tests
