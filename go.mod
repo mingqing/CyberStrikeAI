@@ -5,6 +5,8 @@ module cyberstrike-ai
 go 1.25.0
 
 require (
+	github.com/coreos/go-oidc/v3 v3.14.1
+	github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/bytedance/sonic v1.15.0
 	github.com/cloudwego/eino v0.9.14
