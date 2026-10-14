@@ -34,7 +34,8 @@ jobs:
           go test ./internal/config ./internal/handler ./internal/security ./cmd/server
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git show origin/main:.github/workflows/self-update.yml > .github/workflows/self-update.yml
+          git fetch --no-tags --depth=1 origin main
+          git show FETCH_HEAD:.github/workflows/self-update.yml > .github/workflows/self-update.yml
           git rm -f .github/workflows/oidc-module-repair.yml
           git add go.mod go.sum .github/workflows/self-update.yml
           git diff --cached --check
