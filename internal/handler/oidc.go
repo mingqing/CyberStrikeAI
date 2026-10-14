@@ -240,6 +240,7 @@ func (h *OIDCHandler) Callback(c *gin.Context) {
 	http.SetCookie(c.Writer, &http.Cookie{Name: "auth_token", Value: token, Path: "/", Expires: expiry, Secure: h.callbackCookieSecure(), HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	c.Redirect(302, "/")
 }
+
 // verifyIDToken delegates JWT parsing, JWKS key selection, signature and
 // standard OIDC claim checks to the maintained go-oidc verifier.
 func (h *OIDCHandler) verifyIDToken(ctx context.Context, d discoveryDocument, raw, nonce string) (map[string]interface{}, error) {
@@ -248,7 +249,7 @@ func (h *OIDCHandler) verifyIDToken(ctx context.Context, d discoveryDocument, ra
 	}
 	ctx = oidc.ClientContext(ctx, h.client)
 	verifier := oidc.NewVerifier(d.Issuer, oidc.NewRemoteKeySet(ctx, d.JWKSURI), &oidc.Config{
-		ClientID: h.cfg.ClientID,
+		ClientID:             h.cfg.ClientID,
 		SupportedSigningAlgs: []string{"RS256"},
 	})
 	idToken, err := verifier.Verify(ctx, raw)

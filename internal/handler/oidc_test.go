@@ -21,10 +21,10 @@ func TestOIDCDefaultDiscoveryURL(t *testing.T) {
 			return
 		}
 		_ = json.NewEncoder(w).Encode(discoveryDocument{
-			Issuer: issuer,
+			Issuer:                issuer,
 			AuthorizationEndpoint: issuer + "/authorize",
-			TokenEndpoint: issuer + "/token",
-			JWKSURI: issuer + "/jwks",
+			TokenEndpoint:         issuer + "/token",
+			JWKSURI:               issuer + "/jwks",
 		})
 	}))
 	defer server.Close()
@@ -48,17 +48,17 @@ func TestOIDCCustomDiscoveryURL(t *testing.T) {
 			return
 		}
 		_ = json.NewEncoder(w).Encode(discoveryDocument{
-			Issuer: issuer,
+			Issuer:                issuer,
 			AuthorizationEndpoint: issuer + "/authorize",
-			TokenEndpoint: issuer + "/token",
-			JWKSURI: issuer + "/jwks",
+			TokenEndpoint:         issuer + "/token",
+			JWKSURI:               issuer + "/jwks",
 		})
 	}))
 	defer server.Close()
 
 	h := NewOIDCHandler(config.OIDCConfig{
-		AllowHTTP: true,
-		Issuer: issuer,
+		AllowHTTP:    true,
+		Issuer:       issuer,
 		DiscoveryURL: server.URL + "/api/oauth2/.well-known/openid-configuration",
 	}, nil)
 	d, err := h.discovery(context.Background())
@@ -72,7 +72,7 @@ func TestOIDCCustomDiscoveryURL(t *testing.T) {
 
 func TestOIDCRejectsHTTPDiscoveryByDefault(t *testing.T) {
 	h := NewOIDCHandler(config.OIDCConfig{
-		Issuer: "https://issuer.example.test",
+		Issuer:       "https://issuer.example.test",
 		DiscoveryURL: "http://issuer.example.test/.well-known/openid-configuration",
 	}, nil)
 	if _, err := h.discovery(context.Background()); err == nil {
@@ -91,7 +91,7 @@ func TestOIDCConfigLoginLabel(t *testing.T) {
 		t.Fatalf("unexpected status: %d", w.Code)
 	}
 	var response struct {
-		Enabled bool `json:"enabled"`
+		Enabled bool   `json:"enabled"`
 		Label   string `json:"login_label"`
 	}
 	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
@@ -103,7 +103,10 @@ func TestOIDCConfigLoginLabel(t *testing.T) {
 }
 
 func TestOIDCCookieSecureBasedOnRedirect(t *testing.T) {
-	for _, tc := range []struct{ uri string; secure bool }{
+	for _, tc := range []struct {
+		uri    string
+		secure bool
+	}{
 		{"https://example.test/api/auth/oidc/callback", true},
 		{"http://localhost:8082/api/auth/oidc/callback", false},
 	} {
