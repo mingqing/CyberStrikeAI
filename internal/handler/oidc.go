@@ -112,7 +112,7 @@ func randomURLToken() (string, error) {
 func (h *OIDCHandler) Config(c *gin.Context) {
 	label := strings.TrimSpace(h.cfg.LoginLabel)
 	if label == "" {
-		label = "企业 SSO 登录"
+		label = "Sign in with SSO"
 	}
 	c.JSON(http.StatusOK, gin.H{"enabled": h.cfg.Enabled, "login_label": label})
 }
