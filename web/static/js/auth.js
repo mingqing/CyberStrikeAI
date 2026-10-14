@@ -724,15 +724,17 @@ function formatMarkdown(text, options) {
 async function setupOIDCLoginUI() {
     try {
         const response = await fetch('/api/auth/oidc/config', {credentials: 'same-origin'});
-        if (!response.ok || !(await response.json()).enabled) return;
+        if (!response.ok) return;
+        const oidcConfig = await response.json();
+        if (!oidcConfig.enabled) return;
         const form = document.getElementById('login-form');
         if (!form || document.getElementById('oidc-login-button')) return;
         const button = document.createElement('button');
         button.id = 'oidc-login-button';
         button.type = 'button';
-        button.textContent = '企业 SSO 登录';
-        button.className = 'login-submit-btn';
-        button.style.marginTop = '12px';
+        button.textContent = (typeof oidcConfig.login_label === 'string' && oidcConfig.login_label.trim())
+            ? oidcConfig.login_label.trim() : '企业 SSO 登录';
+        button.className = 'login-oidc-button';
         button.addEventListener('click', () => { window.location.href = '/api/auth/oidc/login'; });
         form.appendChild(button);
     } catch (error) { console.warn('OIDC config unavailable', error); }
