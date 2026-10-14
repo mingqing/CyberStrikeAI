@@ -109,7 +109,13 @@ func randomURLToken() (string, error) {
 	}
 	return base64.RawURLEncoding.EncodeToString(b), nil
 }
-func (h *OIDCHandler) Config(c *gin.Context) { c.JSON(200, gin.H{"enabled": h.cfg.Enabled}) }
+func (h *OIDCHandler) Config(c *gin.Context) {
+	label := strings.TrimSpace(h.cfg.LoginLabel)
+	if label == "" {
+		label = "企业 SSO 登录"
+	}
+	c.JSON(http.StatusOK, gin.H{"enabled": h.cfg.Enabled, "login_label": label})
+}
 func (h *OIDCHandler) Login(c *gin.Context) {
 	if !h.cfg.Enabled {
 		c.AbortWithStatus(404)
