@@ -2,9 +2,7 @@ package handler
 
 import (
 	"context"
-	"crypto"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
@@ -12,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
 	"net/http"
 	"net/url"
 	"os"
@@ -21,6 +18,7 @@ import (
 
 	"cyberstrike-ai/internal/config"
 	"cyberstrike-ai/internal/security"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
 )
 
@@ -242,101 +240,27 @@ func (h *OIDCHandler) Callback(c *gin.Context) {
 	http.SetCookie(c.Writer, &http.Cookie{Name: "auth_token", Value: token, Path: "/", Expires: expiry, Secure: h.callbackCookieSecure(), HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	c.Redirect(302, "/")
 }
+// verifyIDToken delegates JWT parsing, JWKS key selection, signature and
+// standard OIDC claim checks to the maintained go-oidc verifier.
 func (h *OIDCHandler) verifyIDToken(ctx context.Context, d discoveryDocument, raw, nonce string) (map[string]interface{}, error) {
-	segments := strings.Split(raw, ".")
-	if len(segments) != 3 {
-		return nil, errors.New("invalid JWT")
+	if d.JWKSURI == "" {
+		return nil, errors.New("OIDC JWKS URI is missing")
 	}
-	decode := func(s string) ([]byte, error) { return base64.RawURLEncoding.DecodeString(s) }
-	var head struct {
-		Alg string `json:"alg"`
-		Kid string `json:"kid"`
-	}
-	hb, err := decode(segments[0])
-	if err != nil {
-		return nil, err
-	}
-	if json.Unmarshal(hb, &head) != nil || head.Alg != "RS256" {
-		return nil, errors.New("unsupported signing algorithm")
-	}
-	var keys struct {
-		Keys []struct {
-			Kid string `json:"kid"`
-			Kty string `json:"kty"`
-			Alg string `json:"alg"`
-			Use string `json:"use"`
-			N   string `json:"n"`
-			E   string `json:"e"`
-		} `json:"keys"`
-	}
-	if err = h.getJSON(ctx, d.JWKSURI, "", &keys); err != nil {
-		return nil, err
-	}
-	hash := sha256.Sum256([]byte(segments[0] + "." + segments[1]))
-	signature, err := decode(segments[2])
-	if err != nil {
-		return nil, err
-	}
-	verified := false
-	for _, key := range keys.Keys {
-		if key.Kid != head.Kid || key.Kty != "RSA" || (key.Use != "" && key.Use != "sig") || (key.Alg != "" && key.Alg != "RS256") {
-			continue
-		}
-		nb, e1 := decode(key.N)
-		eb, e2 := decode(key.E)
-		if e1 != nil || e2 != nil || len(eb) == 0 || len(eb) > 4 {
-			continue
-		}
-		exp := 0
-		for _, b := range eb {
-			exp = exp*256 + int(b)
-		}
-		n := new(big.Int).SetBytes(nb)
-		if n.BitLen() < 2048 || exp < 3 {
-			continue
-		}
-		pub := &rsa.PublicKey{N: n, E: exp}
-		if rsa.VerifyPKCS1v15(pub, cryptoHashSHA256(), hash[:], signature) == nil {
-			verified = true
-			break
-		}
-	}
-	if !verified {
-		return nil, errors.New("invalid token signature")
-	}
-	payload, err := decode(segments[1])
+	ctx = oidc.ClientContext(ctx, h.client)
+	verifier := oidc.NewVerifier(d.Issuer, oidc.NewRemoteKeySet(ctx, d.JWKSURI), &oidc.Config{
+		ClientID: h.cfg.ClientID,
+		SupportedSigningAlgs: []string{oidc.RS256},
+	})
+	idToken, err := verifier.Verify(ctx, raw)
 	if err != nil {
 		return nil, err
 	}
 	var claims map[string]interface{}
-	if err = json.Unmarshal(payload, &claims); err != nil {
+	if err := idToken.Claims(&claims); err != nil {
 		return nil, err
 	}
-	if claims["iss"] != d.Issuer || claims["nonce"] != nonce {
-		return nil, errors.New("identity mismatch")
-	}
-	validAud := claims["aud"] == h.cfg.ClientID
-	if aud, ok := claims["aud"].([]interface{}); ok {
-		for _, v := range aud {
-			if v == h.cfg.ClientID {
-				validAud = true
-			}
-		}
-		if len(aud) > 1 && claims["azp"] != h.cfg.ClientID {
-			return nil, errors.New("azp mismatch")
-		}
-	}
-	if !validAud {
-		return nil, errors.New("audience mismatch")
-	}
-	now := float64(time.Now().Unix())
-	exp, ok := claims["exp"].(float64)
-	if !ok || exp <= now {
-		return nil, errors.New("expired token")
-	}
-	if iat, ok := claims["iat"].(float64); ok && iat > now+60 {
-		return nil, errors.New("future token")
+	if idToken.Nonce != nonce || nonce == "" {
+		return nil, errors.New("OIDC nonce mismatch")
 	}
 	return claims, nil
 }
-func cryptoHashSHA256() crypto.Hash { return crypto.SHA256 }
