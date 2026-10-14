@@ -249,7 +249,7 @@ func (h *OIDCHandler) verifyIDToken(ctx context.Context, d discoveryDocument, ra
 	ctx = oidc.ClientContext(ctx, h.client)
 	verifier := oidc.NewVerifier(d.Issuer, oidc.NewRemoteKeySet(ctx, d.JWKSURI), &oidc.Config{
 		ClientID: h.cfg.ClientID,
-		SupportedSigningAlgs: []string{oidc.RS256},
+		SupportedSigningAlgs: []string{"RS256"},
 	})
 	idToken, err := verifier.Verify(ctx, raw)
 	if err != nil {
