@@ -53,7 +53,7 @@ func TestOIDCRejectsHTTPDiscoveryByDefault(t *testing.T) {
 
 func TestOIDCConfigLoginLabel(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewOIDCHandler(config.OIDCConfig{Enabled: true, LoginLabel: "统一身份认证"}, nil)
+	h := NewOIDCHandler(config.OIDCConfig{Enabled: true, LoginLabel: "Company SSO"}, nil)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodGet, "/api/auth/oidc/config", nil)
@@ -68,7 +68,7 @@ func TestOIDCConfigLoginLabel(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 		t.Fatal(err)
 	}
-	if !response.Enabled || response.Label != "统一身份认证" {
+	if !response.Enabled || response.Label != "Company SSO" {
 		t.Fatalf("unexpected config response: %+v", response)
 	}
 }
@@ -97,7 +97,7 @@ func TestOIDCConfigDefaultLoginLabel(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 		t.Fatal(err)
 	}
-	if response.Label != "企业 SSO 登录" {
+	if response.Label != "Sign in with SSO" {
 		t.Fatalf("unexpected default label: %q", response.Label)
 	}
 }
