@@ -1368,6 +1368,7 @@ type OIDCConfig struct {
 	AllowHTTP    bool   `yaml:"allow_http" json:"allow_http"`
 	Enabled      bool   `yaml:"enabled" json:"enabled"`
 	Issuer       string `yaml:"issuer" json:"issuer"`
+	DiscoveryURL string `yaml:"discovery_url" json:"discovery_url"`
 	ClientID     string `yaml:"client_id" json:"client_id"`
 	ClientSecret string `yaml:"client_secret" json:"-"`
 	RedirectURI  string `yaml:"redirect_uri" json:"redirect_uri"`
