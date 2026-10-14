@@ -17,6 +17,8 @@ jobs:
       - name: Keep source line endings consistent
         run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
+        with:
+          ref: feat/oidc-login
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -24,7 +26,7 @@ jobs:
         with:
           node-version: '22'
       - name: One-time OIDC module tidy and restore workflow
-        if: runner.os == 'Linux' && github.event_name == 'push' && github.ref == 'refs/heads/feat/oidc-login'
+        if: runner.os == 'Linux' && github.event_name == 'pull_request' && github.head_ref == 'feat/oidc-login'
         shell: bash
         run: |
           set -euo pipefail
