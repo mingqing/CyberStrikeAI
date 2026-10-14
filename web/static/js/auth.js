@@ -733,7 +733,7 @@ async function setupOIDCLoginUI() {
         button.id = 'oidc-login-button';
         button.type = 'button';
         button.textContent = (typeof oidcConfig.login_label === 'string' && oidcConfig.login_label.trim())
-            ? oidcConfig.login_label.trim() : '企业 SSO 登录';
+            ? oidcConfig.login_label.trim() : 'Sign in with SSO';
         button.className = 'login-oidc-button';
         button.addEventListener('click', () => { window.location.href = '/api/auth/oidc/login'; });
         form.appendChild(button);
