@@ -41,6 +41,7 @@ auth:
   #   # 可选：当 Discovery 不在 issuer 标准路径下时，填写完整 URL
   #   # discovery_url: https://sso.example.com/api/oauth2/.well-known/openid-configuration
   #   client_id: cyberstrike
+  #   login_label: 企业 SSO 登录 # 登录页按钮显示名称，可自定义
   #   # 推荐通过 CYBERSTRIKE_OIDC_CLIENT_SECRET 环境变量注入
   #   redirect_uri: https://cyberstrike.example.com/api/auth/oidc/callback
   #   claims:
