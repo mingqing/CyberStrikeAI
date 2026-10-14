@@ -49,16 +49,16 @@ func (h *OIDCHandler) discovery(ctx context.Context) (discoveryDocument, error) 
 	var d discoveryDocument
 	issuer := strings.TrimRight(h.cfg.Issuer, "/")
 	if !h.allowedOIDCURL(issuer) {
-        return d, errors.New("OIDC issuer requires HTTPS unless allow_http is enabled")
-    }
+		return d, errors.New("OIDC issuer requires HTTPS unless allow_http is enabled")
+	}
 	discoveryURL := strings.TrimSpace(h.cfg.DiscoveryURL)
-    if discoveryURL == "" {
-        discoveryURL = issuer + "/.well-known/openid-configuration"
-    }
-    if !h.allowedOIDCURL(discoveryURL) {
-        return d, errors.New("OIDC discovery URL requires HTTPS unless allow_http is enabled")
-    }
-    err := h.getJSON(ctx, discoveryURL, "", &d)
+	if discoveryURL == "" {
+		discoveryURL = issuer + "/.well-known/openid-configuration"
+	}
+	if !h.allowedOIDCURL(discoveryURL) {
+		return d, errors.New("OIDC discovery URL requires HTTPS unless allow_http is enabled")
+	}
+	err := h.getJSON(ctx, discoveryURL, "", &d)
 	if err != nil {
 		return d, err
 	}
@@ -67,22 +67,24 @@ func (h *OIDCHandler) discovery(ctx context.Context) (discoveryDocument, error) 
 	}
 	for _, v := range []string{d.AuthorizationEndpoint, d.TokenEndpoint, d.UserinfoEndpoint, d.JWKSURI} {
 		if v != "" && !h.allowedOIDCURL(v) {
-            return d, errors.New("OIDC endpoint requires HTTPS unless allow_http is enabled")
-        }
+			return d, errors.New("OIDC endpoint requires HTTPS unless allow_http is enabled")
+		}
 	}
 	return d, nil
 }
+
 // allowedOIDCURL only relaxes transport scheme in explicitly opted-in environments.
 func (h *OIDCHandler) allowedOIDCURL(raw string) bool {
-    u, err := url.Parse(raw)
-    if err != nil || u.Host == "" || u.User != nil || u.Fragment != "" {
-        return false
-    }
-    return u.Scheme == "https" || (h.cfg.AllowHTTP && u.Scheme == "http")
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" || u.User != nil || u.Fragment != "" {
+		return false
+	}
+	return u.Scheme == "https" || (h.cfg.AllowHTTP && u.Scheme == "http")
 }
+
 func (h *OIDCHandler) callbackCookieSecure() bool {
-    u, err := url.Parse(h.cfg.RedirectURI)
-    return err == nil && u.Scheme == "https"
+	u, err := url.Parse(h.cfg.RedirectURI)
+	return err == nil && u.Scheme == "https"
 }
 func (h *OIDCHandler) getJSON(ctx context.Context, endpoint, bearer string, out interface{}) error {
 	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
