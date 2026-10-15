@@ -36,13 +36,15 @@ auth:
   # 可选的 OIDC SSO，默认关闭；HTTPS 反向代理下使用
   # oidc:
   #   enabled: true
-  #   allow_http: false # 本地测试可改为 true；允许 HTTP Issuer/端点/回调
-  #   issuer: https://sso.example.com
-  #   # 可选：当 Discovery 不在 issuer 标准路径下时，填写完整 URL
-  #   # discovery_url: https://sso.example.com/api/oauth2/.well-known/openid-configuration
+  #   allow_http: false # 仅隔离测试环境使用 HTTP
+  #   # Keycloak: https://keycloak.example.com/realms/security
+  #   # Dex:      https://dex.example.com/dex
+  #   issuer: https://keycloak.example.com/realms/security
+  #   # 可选：仅当 Provider 发现地址不符合 <issuer>/.well-known/openid-configuration 时填写
+  #   # discovery_url: https://sso.example.com/custom/.well-known/openid-configuration
   #   client_id: cyberstrike
-  #   login_label: 企业 SSO 登录 # 登录页按钮显示名称，可自定义
-  #   # 推荐通过 CYBERSTRIKE_OIDC_CLIENT_SECRET 环境变量注入
+  #   login_label: Sign in with Keycloak # 也可自定义为中文
+  #   # 推荐通过 CYBERSTRIKE_OIDC_CLIENT_SECRET 环境变量注入 client_secret
   #   redirect_uri: https://cyberstrike.example.com/api/auth/oidc/callback
   #   claims:
   #     username: preferred_username
