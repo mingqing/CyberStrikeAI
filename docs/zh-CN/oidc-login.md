@@ -4,26 +4,73 @@
 
 ## 配置
 
-在 config.yaml 的 auth 下配置：
+CyberStrikeAI 作为 OIDC Client，可以对接 Keycloak、Dex 等标准 OIDC Provider。当前一个实例只配置一个 Provider。
+
+### Keycloak 示例
+
+在 Keycloak 的 `security` Realm 注册 Client `cyberstrike`，启用 Standard Flow 和 Client Authentication，并登记完整的 Redirect URI：
 
 ```yaml
 auth:
   session_duration_hours: 12
   oidc:
     enabled: true
-    allow_http: false  # 在明确接受明文传输风险的隔离环境可设为 true
-    issuer: https://sso.example.com
-    # discovery_url: https://sso.example.com/api/oauth2/.well-known/openid-configuration
+    allow_http: false
+    issuer: https://keycloak.example.com/realms/security
     client_id: cyberstrike
-    login_label: 企业 SSO 登录
-    client_secret: "从环境注入的密钥"
+    # 建议通过 CYBERSTRIKE_OIDC_CLIENT_SECRET 环境变量注入密钥
     redirect_uri: https://cyberstrike.example.com/api/auth/oidc/callback
+    login_label: Sign in with Keycloak
     claims:
       username: preferred_username
       display_name: name
 ```
 
-`login_label` 可自定义登录页的 OIDC 按钮文本，未配置时默认显示“企业 SSO 登录”；仅在 `enabled: true` 时显示，按钮使用与本地账号登录一致的宽度及次要操作样式。\n\n`discovery_url` 是可选配置。省略时自动请求 `<issuer>/.well-known/openid-configuration`；提供时直接请求该 URL，但仍要求发现文档的 `issuer` 与配置的 `issuer` 完全一致，并验证 ID Token 的 `iss`。自定义 URL 同样遵守 `allow_http` 的 HTTP/HTTPS 限制。示例：`issuer: http://192.168.0.1:8080` 与 `discovery_url: http://192.168.0.1:8080/api/oauth2/.well-known/openid-configuration`。若发现文档发布的 issuer 不同，应使用发现文档中的实际值，不能通过跳过校验兼容。\n\nOIDC Provider 注册 Web 客户端，使用 Authorization Code Flow 和 PKCE (S256)。默认要求 HTTPS Issuer、Discovery、Token、JWKS 和 Redirect URI；启用 `allow_http: true` 后也允许这些地址使用 HTTP。Cookie 的 Secure 属性按照配置的 Redirect URI Scheme 设置。当前使用 `github.com/coreos/go-oidc/v3/oidc` 完成 ID Token、JWKS 和标准 Claims 校验，暂仅接受 RS256 签名。配置 Redirect URI 必须与对外访问地址一致。生产环境强烈推荐 HTTPS；HTTP 可能暴露授权码、客户端密钥及会话 Cookie，仅适合隔离开发环境。
+默认发现地址：`https://keycloak.example.com/realms/security/.well-known/openid-configuration`。
+
+### Dex 示例
+
+Dex Provider 的相关配置：
+
+```yaml
+issuer: https://dex.example.com/dex
+staticClients:
+  - id: cyberstrike
+    name: CyberStrikeAI
+    secret: YOUR_CLIENT_SECRET
+    redirectURIs:
+      - https://cyberstrike.example.com/api/auth/oidc/callback
+```
+
+CyberStrikeAI 对应配置：
+
+```yaml
+auth:
+  session_duration_hours: 12
+  oidc:
+    enabled: true
+    allow_http: false
+    issuer: https://dex.example.com/dex
+    client_id: cyberstrike
+    # 建议通过 CYBERSTRIKE_OIDC_CLIENT_SECRET 环境变量注入密钥
+    redirect_uri: https://cyberstrike.example.com/api/auth/oidc/callback
+    login_label: Sign in with Dex
+    claims:
+      username: preferred_username
+      display_name: name
+```
+
+默认发现地址：`https://dex.example.com/dex/.well-known/openid-configuration`。Dex 的具体 Claims 取决于上游连接器，首次登录前应确认 `preferred_username` 和 `name` 是否存在。
+
+### 配置说明
+
+- `issuer` 必须与 Discovery 响应和 ID Token 中的 Issuer 完全一致。
+- `discovery_url` 是可选的；默认使用 `<issuer>/.well-known/openid-configuration`。如 Provider 使用非标准发现路径，才填写完整 URL；不会因此跳过 Issuer 校验。
+- `login_label` 可指定登录按钮名称；缺省为 `Sign in with SSO`。
+- `client_secret` 推荐通过 `CYBERSTRIKE_OIDC_CLIENT_SECRET` 环境变量提供。
+- `redirect_uri` 必须与 OIDC Provider 注册的回调地址一致。
+- `allow_http: true` 只应在明确接受明文传输风险的隔离测试环境使用；生产使用 HTTPS。
+- 当前使用 `github.com/coreos/go-oidc/v3/oidc` 验证 ID Token，暂仅接受 RS256。Token 交换使用 `client_secret_post` 形式，须确认 Provider 支持。
 
 首次 SSO 登录会按配置 Claim 创建本地用户，默认 viewer；现有 OIDC 用户按用户名及 issuer+sub 指纹校验登录。未启用 OIDC 的本地密码账号、内置 admin 均不会因同名而被自动关联。OIDC 新建用户的 password_hash 字段保存 !oidc: 开头的身份指纹，不能通过本地密码登录。不可随意修改 Username Claim 的值，也不能将 OIDC 账号密码重置为本地密码，否则会破坏绑定。因为无数据库身份映射表，单个用户只支持一个 OIDC 身份，且用户名在 IdP 中必须稳定、唯一、不允许回收给其他用户。
 
